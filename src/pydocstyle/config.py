@@ -70,11 +70,13 @@ class ConfigurationParser:
         'match',
         'match-dir',
         'ignore-decorators',
+        'expect-style'
     )
     BASE_ERROR_SELECTION_OPTIONS = ('ignore', 'select', 'convention')
 
     DEFAULT_MATCH_RE = r'(?!test_).*\.py'
     DEFAULT_MATCH_DIR_RE = r'[^\.].*'
+    DEFAULT_EXPECT_STYLE_RE = '(google|pep257|numpy)'
     DEFAULT_IGNORE_DECORATORS_RE = ''
     DEFAULT_CONVENTION = conventions.pep257
 
@@ -155,12 +157,19 @@ class ConfigurationParser:
                 re(conf.ignore_decorators) if conf.ignore_decorators else None
             )
 
+        def _get_expect_style(conf):
+            """Return the `expect_style` as None, google, or numpy."""
+            return (
+                conf.expect_style
+            )
+
         for name in self._arguments:
             if os.path.isdir(name):
                 for root, dirs, filenames in os.walk(name):
                     config = self._get_config(os.path.abspath(root))
                     match, match_dir = _get_matches(config)
                     ignore_decorators = _get_ignore_decorators(config)
+                    expect_style = _get_expect_style(config)
 
                     # Skip any dirs that do not match match_dir
                     dirs[:] = [d for d in dirs if match_dir(d)]
@@ -172,13 +181,15 @@ class ConfigurationParser:
                                 full_path,
                                 list(config.checked_codes),
                                 ignore_decorators,
+                                expect_style
                             )
             else:
                 config = self._get_config(os.path.abspath(name))
                 match, _ = _get_matches(config)
                 ignore_decorators = _get_ignore_decorators(config)
+                expect_style = _get_expect_style(config)
                 if match(name):
-                    yield (name, list(config.checked_codes), ignore_decorators)
+                    yield (name, list(config.checked_codes), ignore_decorators, expect_style)
 
     # --------------------------- Private Methods -----------------------------
 
@@ -405,7 +416,7 @@ class ConfigurationParser:
             checked_codes = cls._get_checked_errors(options)
 
         kwargs = dict(checked_codes=checked_codes)
-        for key in ('match', 'match_dir', 'ignore_decorators'):
+        for key in ('match', 'match_dir', 'ignore_decorators', 'expect_style'):
             kwargs[key] = (
                 getattr(cls, f'DEFAULT_{key.upper()}_RE')
                 if getattr(options, key) is None and use_defaults
@@ -626,6 +637,14 @@ class ConfigurationParser:
             default=None,
             help='use given config file and disable config discovery',
         )
+        option(
+            '--expect-style',
+            help='sets expectation of which style of docstring to check.'
+            'if unspecified a heuristic will be used to make a best guess.'
+            'valid options include: "pep257", "numpy", and "google"',
+            metavar='<name>',
+            default=None,
+        )
 
         parser.add_option_group(
             OptionGroup(
@@ -743,7 +762,7 @@ class ConfigurationParser:
 # Check configuration - used by the ConfigurationParser class.
 CheckConfiguration = namedtuple(
     'CheckConfiguration',
-    ('checked_codes', 'match', 'match_dir', 'ignore_decorators'),
+    ('checked_codes', 'match', 'match_dir', 'ignore_decorators', 'expect_style'),
 )
 
 

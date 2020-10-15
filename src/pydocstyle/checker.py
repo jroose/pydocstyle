@@ -126,12 +126,15 @@ class ConventionChecker:
         ".+"
     )
 
+    def __init__(self, expect_style=None):
+        self.expect_style = expect_style
+
     def check_source(
         self,
         source,
         filename,
         ignore_decorators=None,
-        ignore_inline_noqa=False,
+        ignore_inline_noqa=False
     ):
         module = parse(StringIO(source), filename)
         for definition in module:
@@ -1023,10 +1026,14 @@ class ConventionChecker:
         if len(lines) < 2:
             return
 
-        found_numpy = yield from self._check_numpy_sections(
-            lines, definition, docstring
-        )
-        if not found_numpy:
+        if self.expect_style in (None, 'numpy'):
+            found_numpy = yield from self._check_numpy_sections(
+                lines, definition, docstring
+            )
+        else:
+            found_numpy = False
+
+        if (self.expect_style is None and not found_numpy) or self.expect_style == 'google':
             yield from self._check_google_sections(
                 lines, definition, docstring
             )
@@ -1041,6 +1048,7 @@ def check(
     ignore=None,
     ignore_decorators=None,
     ignore_inline_noqa=False,
+    expect_style=None
 ):
     """Generate docstring errors that exist in `filenames` iterable.
 
@@ -1091,7 +1099,7 @@ def check(
         try:
             with tk.open(filename) as file:
                 source = file.read()
-            for error in ConventionChecker().check_source(
+            for error in ConventionChecker(expect_style=expect_style).check_source(
                 source, filename, ignore_decorators, ignore_inline_noqa
             ):
                 code = getattr(error, 'code', None)
