@@ -986,6 +986,7 @@ class ConventionChecker:
         Yields all violation from `_check_numpy_section` for each valid
         Numpy-style section.
         """
+        print("Running: _check_numpy_sections()")
         found_any_numpy_section = False
         for ctx in self._get_section_contexts(lines, self.NUMPY_SECTION_NAMES):
             found_any_numpy_section = True
@@ -1011,6 +1012,7 @@ class ConventionChecker:
         Yields all violation from `_check_google_section` for each valid
         Google-style section.
         """
+        print("Running: _check_google_sections()")
         for ctx in self._get_section_contexts(
             lines, self.GOOGLE_SECTION_NAMES
         ):
@@ -1019,6 +1021,7 @@ class ConventionChecker:
     @check_for(Definition)
     def check_docstring_sections(self, definition, docstring):
         """Check for docstring sections."""
+
         if not docstring:
             return
 
@@ -1026,6 +1029,7 @@ class ConventionChecker:
         if len(lines) < 2:
             return
 
+        print("Checking docstring for definition: {}".format(definition))
         if self.expect_style in (None, 'numpy'):
             found_numpy = yield from self._check_numpy_sections(
                 lines, definition, docstring
@@ -1037,6 +1041,7 @@ class ConventionChecker:
             yield from self._check_google_sections(
                 lines, definition, docstring
             )
+        print("")
 
 
 parse = Parser()
